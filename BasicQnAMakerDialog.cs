@@ -1,10 +1,13 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
+using System.Linq;
 using System.Configuration;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Text.RegularExpressions;
 
 using Newtonsoft.Json;
 
@@ -18,6 +21,8 @@ namespace Microsoft.Bot.Sample.QnABot
     [Serializable]
     public class RootDialog : IDialog<object>
     {
+        public static string convert = "";
+        
         public Task StartAsync(IDialogContext context)
         {
             context.Wait(HelloMessage);
@@ -54,12 +59,14 @@ namespace Microsoft.Bot.Sample.QnABot
         private async Task SelectDialog(IDialogContext context, IAwaitable<IMessageActivity> result)
         {
             var message = await result;
+            
+            convert = await ZenkakuConvert.Convert(message.Text);
 
-            if(message.Text == "1" || message.Text == "１")
+            if(convert == "1")
             {
                 context.Call(new FAQDialog(), QnaResumeAfterDialog);
             }
-            else if(message.Text == "2" || message.Text == "２")
+            else if(convert == "2")
             {
                 await context.PostAsync("ご利用ありがとうございました。最後にアンケートをお願いできますか？");
                 context.Call(new EnqueteDialog(), EnqueteResumeAfterDialog);
@@ -94,12 +101,14 @@ namespace Microsoft.Bot.Sample.QnABot
         {
             var feedbackMenu = await result;
             
-            if(feedbackMenu.Text == "1" || feedbackMenu.Text == "１")
+            convert = await ZenkakuConvert.Convert(feedbackMenu.Text);
+            
+            if(convert == "1")
             {
                 await context.PostAsync("ご利用ありがとうございました。");
                 await MenuMessage(context);
             }
-            else if(feedbackMenu.Text == "2" || feedbackMenu.Text == "２")
+            else if(convert == "2")
             {
                 await context.PostAsync("どのような回答をご希望でしたか？");
                 context.Wait(InputMessage);
@@ -129,6 +138,7 @@ namespace Microsoft.Bot.Sample.QnABot
     public class FAQDialog : IDialog<object>
     {
         public static string json = "";
+        public static string convert = "";
 
         public async Task StartAsync(IDialogContext context)
         {
@@ -168,13 +178,14 @@ namespace Microsoft.Bot.Sample.QnABot
             var num = await item;
             var result = JsonConvert.DeserializeObject<QnAMakerResults>(json);
 
+            convert = await ZenkakuConvert.Convert(num.Text);
 
-            if (Int32.Parse(num.Text) >= 1 && Int32.Parse(num.Text) <= result.Answers.Count)
+            if (Int32.Parse(convert) >= 1 && Int32.Parse(convert) <= result.Answers.Count)
             {
-                await context.PostAsync(result.Answers[Int32.Parse(num.Text) - 1].Answer.ToString());
+                await context.PostAsync(result.Answers[Int32.Parse(convert) - 1].Answer.ToString());
                 context.Done<object>(null);
             }
-            else if (Int32.Parse(num.Text) == result.Answers.Count + 1)
+            else if (Int32.Parse(convert) == result.Answers.Count + 1)
             {
                 await context.PostAsync("お役に立てず申し訳ございません。。");
                 context.Done<object>(null);
@@ -218,6 +229,30 @@ namespace Microsoft.Bot.Sample.QnABot
             }
         }
     }
+    /**********************************************************************************/
+    // ZenkakuConvert.cs
+    public class ZenkakuConvert
+    {
+        public static Dictionary<char, char> dictionary =
+            new Dictionary<char, char>()
+            {
+                {'０','0'},{'１','1'},{'２','2'},{'３','3'},
+                {'４','4'},{'５','5'},{'６','6'},{'７','7'},
+                {'８','8'},{'９','9'},
+            };
+
+        public static async Task<string> Convert(string source)
+        {
+            Regex regex = new Regex("[０-９]+");
+            return regex.Replace(source, Replacer);
+        }
+
+        public static string Replacer(Match m)
+        {
+            return new string(m.Value.Select(n => dictionary[n]).ToArray());
+        }
+    }
+    
     
     /**********************************************************************************/
     // EnqueteDialog.cs
