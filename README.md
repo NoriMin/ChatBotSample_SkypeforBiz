@@ -47,7 +47,7 @@ Azure Bot FrameworkとQnA Maker Serviceを用いて作成した、Skype for Busi
 
 # 動作確認
 
-1. Azureポータル上でWeb App Botを開いて頂き、画面左側のリストから**Webチャットでテスト**を選択してください。ここで、ChatBotの動作確認をして頂けます。
+1. Azureポータル上でWeb App Botを開いて頂き、画面左側のリストから**Webチャットでテスト**を選択してください。ここで、ChatBotの動作確認をして頂けます(数字での入力は全角・半角共に対応できます)。
 
 <a href="https://imgur.com/Gz6bA4m"><img src="https://i.imgur.com/Gz6bA4m.png" title="source: imgur.com" /></a>
 
